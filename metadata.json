@@ -1,0 +1,5 @@
+{
+  "name": "Unofficial College Portal",
+  "description": "A full-featured portal for students to connect, share resources, and stay updated on campus life. This application provides user authentication (login, signup, logout) and student profile creation as the foundational step.",
+  "requestFramePermissions": []
+}
