@@ -39,7 +39,7 @@ const PlacementsPage: React.FC = () => {
                     <div key={p.id} className="grid grid-cols-1 md:grid-cols-5 p-4 border-b border-slate-700 last:border-b-0 items-center gap-y-2">
                         <div className="font-semibold text-white"><span className="md:hidden text-slate-400 font-bold">Company: </span>{p.companyName}</div>
                         <div><span className="md:hidden text-slate-400 font-bold">Role: </span>{p.role}</div>
-                        <div><span className="md:hidden text-slate-400 font-bold">Package: </span>{p.package}</div>
+                        <div><span className="md:hidden text-slate-400 font-bold">Package: </span>{p.salaryPackage}</div>
                         <div className="text-sm"><span className="md:hidden text-slate-400 font-bold">Eligibility: </span>{p.eligibility}</div>
                         <div>
                             <button onClick={() => handleInterest(p.id)} className={`w-full md:w-auto px-3 py-1.5 text-sm font-semibold rounded-full ${user && p.interested.includes(user.id) ? 'bg-green-500 text-white' : 'bg-slate-700 hover:bg-slate-600'}`}>
@@ -60,7 +60,7 @@ const PlacementModal: React.FC<{onSave: (data: any) => void, onClose: () => void
     const [pkg, setPkg] = useState('');
     const [eligibility, setEligibility] = useState('');
     
-    const handleSubmit = (e: React.FormEvent) => { e.preventDefault(); onSave({ companyName, role, package: pkg, eligibility }); };
+    const handleSubmit = (e: React.FormEvent) => { e.preventDefault(); onSave({ companyName, role, salaryPackage: pkg, eligibility }); };
 
     return (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex justify-center items-center z-50">

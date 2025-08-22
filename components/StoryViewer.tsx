@@ -22,7 +22,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ storyGroups, initialUserIndex
     const [currentUserIndex, setCurrentUserIndex] = useState(initialUserIndex);
     const [currentStoryIndex, setCurrentStoryIndex] = useState(0);
     const [isPaused, setIsPaused] = useState(false);
-    const timerRef = useRef<NodeJS.Timeout | null>(null);
+    const timerRef = useRef<number | null>(null);
     const progressRef = useRef<HTMLDivElement>(null);
 
     const currentUserGroup = storyGroups[currentUserIndex];
@@ -62,7 +62,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ storyGroups, initialUserIndex
              if (timerRef.current) clearTimeout(timerRef.current);
         } else {
             if (timerRef.current) clearTimeout(timerRef.current);
-            timerRef.current = setTimeout(goToNextStory, 5000); // 5 seconds per story
+            timerRef.current = window.setTimeout(goToNextStory, 5000); // 5 seconds per story
         }
         return () => {
             if (timerRef.current) clearTimeout(timerRef.current);

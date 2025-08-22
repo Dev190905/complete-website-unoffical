@@ -84,7 +84,7 @@ export interface Placement {
   id: string;
   companyName: string;
   role: string;
-  package: string;
+  salaryPackage: string;
   eligibility: string;
   interested: string[]; // array of user IDs
 }
