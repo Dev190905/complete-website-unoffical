@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import type { Resource } from '../types';
@@ -20,8 +21,8 @@ const ResourcesPage: React.FC = () => {
             
             {resources.length === 0 ? (
                 <div className="text-center py-20 bg-slate-800/80 rounded-lg border border-dashed border-slate-700">
-                    <h2 className="text-2xl font-semibold text-slate-300">No Resources Yet</h2>
-                    <p className="text-slate-500 mt-2">Be the first to upload and share study material!</p>
+                    <h2 className="text-2xl font-semibold text-slate-300">No Resources Found</h2>
+                    <p className="text-slate-500 mt-2">The data set is not currently available and will be added soon.</p>
                 </div>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -61,8 +62,8 @@ const ResourceModal: React.FC<{onSave: (data: any) => void, onClose: () => void}
     };
 
     return (
-         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex justify-center items-center z-50 animate-fade-in">
-            <div className="bg-slate-800 rounded-lg p-8 w-full max-w-lg border border-slate-700">
+         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex justify-center items-center z-50">
+            <div className="bg-slate-800 rounded-lg p-8 w-full max-w-lg border border-slate-700 animate-modal-pop-in">
                 <h2 className="text-2xl font-bold mb-4">Upload Resource</h2>
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <input type="text" placeholder="Title" value={title} onChange={e => setTitle(e.target.value)} required className="input-glow-effect w-full px-4 py-2 bg-slate-700/50 border border-slate-600 rounded-md"/>

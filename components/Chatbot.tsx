@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { GoogleGenAI, Chat } from '@google/genai';
 import type { ChatMessage } from '../types';
@@ -14,11 +15,10 @@ const Chatbot: React.FC = () => {
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-    const [chat, setChat] = useState<Chat | null>(null);
+    const chatRef = useRef<Chat | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const { notices, topics, events, allUsers } = useAuth();
     
-    // Generate a context-aware system instruction
     const systemInstruction = useMemo(() => {
          const portalContext = `
             You are a friendly and helpful AI assistant for a college portal. Your goal is to assist students.
@@ -33,21 +33,16 @@ const Chatbot: React.FC = () => {
     }, [notices, topics, events, allUsers]);
 
     useEffect(() => {
-        if (!API_KEY) {
-            console.error("API_KEY is not set.");
-            return;
+        if (isOpen && !chatRef.current && API_KEY) {
+            console.log("Initializing Chatbot...");
+            const ai = new GoogleGenAI({ apiKey: API_KEY });
+            chatRef.current = ai.chats.create({
+                model: 'gemini-2.5-flash',
+                config: {
+                    systemInstruction: systemInstruction,
+                },
+            });
         }
-        if(!isOpen) return; // Only initialize when opened for the first time
-        
-        const ai = new GoogleGenAI({ apiKey: API_KEY });
-        const chatInstance = ai.chats.create({
-            model: 'gemini-2.5-flash',
-            config: {
-                systemInstruction: systemInstruction,
-            },
-        });
-        setChat(chatInstance);
-
     }, [isOpen, systemInstruction]);
     
     useEffect(() => {
@@ -56,6 +51,7 @@ const Chatbot: React.FC = () => {
 
 
     const handleSend = async () => {
+        const chat = chatRef.current;
         if (!input.trim() || !chat || isLoading) return;
 
         const userMessage: ChatMessage = { role: 'user', parts: [{ text: input }] };

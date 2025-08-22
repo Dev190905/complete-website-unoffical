@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { ThemeProvider } from './context/ThemeContext';
 import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
@@ -20,17 +21,17 @@ import ProtectedRoute from './components/ProtectedRoute';
 import AdminRoute from './components/AdminRoute';
 import FriendsPage from './pages/FriendsPage';
 import ChatPage from './pages/ChatPage';
-import SplashScreen from './components/SplashScreen';
 import ProfilePage from './pages/ProfilePage';
 import SearchPage from './pages/SearchPage';
+import AIChatPage from './pages/AIChatPage';
 
 const AppRoutes: React.FC = () => {
     const { user, loading } = useAuth();
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center h-screen bg-slate-900">
-                <div className="w-16 h-16 border-4 border-dashed rounded-full animate-spin border-primary-500"></div>
+            <div className="flex items-center justify-center h-screen bg-black">
+                <div className="w-12 h-12 border-4 border-t-primary-500 border-gray-700 rounded-full animate-spin"></div>
             </div>
         );
     }
@@ -63,6 +64,7 @@ const AppRoutes: React.FC = () => {
                 <Route path="chat/:friendId" element={<ChatPage />} />
                 <Route path="profile" element={<ProfilePage />} />
                  <Route path="search/:query" element={<SearchPage />} />
+                 <Route path="ai-chat" element={<AIChatPage />} />
                 <Route path="admin" element={
                     <AdminRoute>
                         <AdminPage />
@@ -75,24 +77,14 @@ const AppRoutes: React.FC = () => {
 };
 
 const App: React.FC = () => {
-    const [showSplash, setShowSplash] = useState(true);
-
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            setShowSplash(false);
-        }, 2500); // Splash screen duration
-        return () => clearTimeout(timer);
-    }, []);
-
     return (
-        <AuthProvider>
-            {showSplash && <SplashScreen />}
-            <div className={showSplash ? 'hidden' : 'block'}>
+        <ThemeProvider>
+            <AuthProvider>
                 <HashRouter>
                     <AppRoutes />
                 </HashRouter>
-            </div>
-        </AuthProvider>
+            </AuthProvider>
+        </ThemeProvider>
     );
 };
 

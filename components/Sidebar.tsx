@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -31,8 +32,8 @@ const links = [
 const Sidebar: React.FC = () => {
   const { user } = useAuth();
 
-  const activeLinkClass = 'bg-primary-600/60 text-white';
-  const inactiveLinkClass = 'text-gray-400 hover:bg-gray-700/50 hover:text-white';
+  const activeLinkClass = 'bg-slate-800 text-primary-400';
+  const inactiveLinkClass = 'text-gray-400 hover:bg-slate-700/50 hover:text-white';
 
   const NavItem = ({ link }: { link: { name: string, path: string, icon: JSX.Element }}) => (
     <NavLink

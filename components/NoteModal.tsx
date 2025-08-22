@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 
@@ -30,8 +31,8 @@ const NoteModal: React.FC<NoteModalProps> = ({ onClose }) => {
     };
 
     return (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex justify-center items-center z-50 animate-fade-in" onClick={onClose}>
-            <div className="bg-gray-800 rounded-lg p-6 w-full max-w-sm border border-gray-700 text-center" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex justify-center items-center z-50" onClick={onClose}>
+            <div className="bg-gray-800 rounded-lg p-6 w-full max-w-sm border border-gray-700 text-center animate-modal-pop-in" onClick={e => e.stopPropagation()}>
                 <img src={user?.avatarUrl} alt="Your avatar" className="w-20 h-20 rounded-full mx-auto -mt-16 border-4 border-gray-800" />
                 <h2 className="text-xl font-bold mt-4 text-white">Share a thought</h2>
                 <p className="text-gray-400 text-sm mb-4">Your friends can see your note for 24 hours.</p>

@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -27,8 +28,8 @@ const AddTopicModal: React.FC<AddTopicModalProps> = ({ onClose }) => {
     };
 
     return (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex justify-center items-center z-50 animate-fade-in" onClick={onClose}>
-            <div className="bg-slate-800 rounded-lg p-8 w-full max-w-lg border border-slate-700" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex justify-center items-center z-50" onClick={onClose}>
+            <div className="bg-slate-800 rounded-lg p-8 w-full max-w-lg border border-slate-700 animate-modal-pop-in" onClick={e => e.stopPropagation()}>
                 <h2 className="text-2xl font-bold mb-4 text-white">Start a New Discussion</h2>
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <input 

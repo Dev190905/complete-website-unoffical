@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -22,21 +23,20 @@ const ForgotPasswordPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col justify-center items-center p-4 auth-container">
-      <div className="w-full max-w-md">
-        <div className="pixel-box">
-            <h1 className="text-5xl text-center mb-2">RESET</h1>
-            <p className="text-xl text-center mb-8">Recover your account</p>
+    <div className="auth-page-container">
+      <div className="auth-card">
+          <h1 className="auth-title">Forgot Password</h1>
+          <p className="auth-subtitle">Enter your email to get a reset link.</p>
           {message ? (
             <div className="text-center">
-              <p className="text-xl">{message}</p>
-              <p className="mt-4 text-lg text-gray-400">Check the console (F12) for the simulated reset link.</p>
+              <p className="text-green-400 bg-green-500/10 p-4 rounded-lg">{message}</p>
+              <p className="mt-4 text-sm text-slate-400">Check the developer console (F12) for the simulated reset link.</p>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-6">
-              {error && <div className="pixel-error">{error}</div>}
+              {error && <div className="auth-error">{error}</div>}
               <div>
-                <label htmlFor="email" className="pixel-label">Email Address:</label>
+                <label htmlFor="email" className="auth-label">Email Address</label>
                 <input
                   id="email"
                   name="email"
@@ -45,21 +45,20 @@ const ForgotPasswordPage: React.FC = () => {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="pixel-input"
+                  className="auth-input"
                 />
               </div>
-              <button type="submit" className="pixel-button">
+              <button type="submit" className="auth-button">
                 Send Reset Link
               </button>
             </form>
           )}
-          <p className="text-center text-xl mt-6">
-            Remember it?{' '}
-            <Link to="/login" className="pixel-link">
+          <p className="text-center text-sm text-slate-400 mt-6">
+            Remember your password?{' '}
+            <Link to="/login" className="auth-link">
               Sign In
             </Link>
           </p>
-        </div>
       </div>
     </div>
   );

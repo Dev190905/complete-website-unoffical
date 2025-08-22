@@ -33,19 +33,26 @@ export const ForumPage: React.FC = () => {
                 <button onClick={() => setIsModalOpen(true)} className="px-4 py-2 bg-primary-600 hover:bg-primary-700 rounded-lg text-white font-semibold transition-colors">Start New Discussion</button>
             </div>
             <div className="bg-slate-800/80 rounded-lg border border-slate-700">
-                {[...topics].sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()).map(topic => (
-                    <Link key={topic.id} to={`/forum/${topic.id}`} className="block p-4 border-b border-slate-700 last:border-b-0 hover:bg-slate-700/50 transition-colors">
-                        <h2 className="text-lg font-semibold text-primary-400">{topic.title}</h2>
-                        <div className="flex items-center space-x-2 text-sm text-slate-400 mt-1">
-                          <img src={topic.author.avatarUrl} alt={topic.author.name} className="w-5 h-5 rounded-full" />
-                          <span>by {topic.author.name}</span>
-                          <span>&middot;</span>
-                          <span>{new Date(topic.timestamp).toLocaleString()}</span>
-                           <span>&middot;</span>
-                          <span className="font-semibold">{topic.replies.length} replies</span>
-                        </div>
-                    </Link>
-                ))}
+                {topics.length === 0 ? (
+                    <div className="p-8 text-center text-slate-500">
+                        <h2 className="text-2xl font-semibold text-slate-300">No Discussions Found</h2>
+                        <p className="mt-2">The data set is not currently available and will be added soon.</p>
+                    </div>
+                ) : (
+                    [...topics].sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()).map(topic => (
+                        <Link key={topic.id} to={`/forum/${topic.id}`} className="block p-4 border-b border-slate-700 last:border-b-0 hover:bg-slate-700/50 transition-colors">
+                            <h2 className="text-lg font-semibold text-primary-400">{topic.title}</h2>
+                            <div className="flex items-center space-x-2 text-sm text-slate-400 mt-1">
+                              <img src={topic.author.avatarUrl} alt={topic.author.name} className="w-5 h-5 rounded-full" />
+                              <span>by {topic.author.name}</span>
+                              <span>&middot;</span>
+                              <span>{new Date(topic.timestamp).toLocaleString()}</span>
+                               <span>&middot;</span>
+                              <span className="font-semibold">{topic.replies.length} replies</span>
+                            </div>
+                        </Link>
+                    ))
+                )}
             </div>
         </div>
     );

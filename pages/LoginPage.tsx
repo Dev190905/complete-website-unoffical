@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -22,56 +23,54 @@ const LoginPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col justify-center items-center p-4 auth-container">
-      <div className="w-full max-w-md">
-        <div className="pixel-box">
-          <h1 className="text-5xl text-center mb-2">PORTAL</h1>
-          <p className="text-xl text-center mb-8">User Authentication</p>
-        
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {error && <div className="pixel-error">{error}</div>}
-            <div>
-              <label htmlFor="username" className="pixel-label">Username:</label>
-              <input
-                id="username"
-                name="username"
-                type="text"
-                autoComplete="username"
-                required
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                className="pixel-input"
-              />
+    <div className="auth-page-container">
+      <div className="auth-card">
+        <h1 className="auth-title">Portal Login</h1>
+        <p className="auth-subtitle">Welcome back, please sign in.</p>
+      
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {error && <div className="auth-error">{error}</div>}
+          <div>
+            <label htmlFor="username" className="auth-label">Username</label>
+            <input
+              id="username"
+              name="username"
+              type="text"
+              autoComplete="username"
+              required
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              className="auth-input"
+            />
+          </div>
+          <div>
+            <div className="flex justify-between items-center mb-2">
+              <label htmlFor="password"  className="auth-label !mb-0">Password</label>
+              <Link to="/forgot-password" className="text-sm auth-link">
+                  Forgot password?
+              </Link>
             </div>
-            <div>
-              <div className="flex justify-between items-baseline">
-                <label htmlFor="password"  className="pixel-label">Password:</label>
-                <Link to="/forgot-password" className="pixel-link text-lg">
-                    Forgot?
-                </Link>
-              </div>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                autoComplete="current-password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="pixel-input"
-              />
-            </div>
-            <button type="submit" className="pixel-button">
-              Sign In
-            </button>
-          </form>
-          <p className="text-center text-xl mt-6">
-            No account?{' '}
-            <Link to="/signup" className="pixel-link">
-              Sign Up
-            </Link>
-          </p>
-        </div>
+            <input
+              id="password"
+              name="password"
+              type="password"
+              autoComplete="current-password"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="auth-input"
+            />
+          </div>
+          <button type="submit" className="auth-button">
+            Sign In
+          </button>
+        </form>
+        <p className="text-center text-sm text-slate-400 mt-6">
+          Don't have an account?{' '}
+          <Link to="/signup" className="auth-link">
+            Sign up now
+          </Link>
+        </p>
       </div>
     </div>
   );

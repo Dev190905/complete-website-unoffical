@@ -1,8 +1,9 @@
 import React, { createContext, useState, useContext, useEffect, ReactNode, useCallback } from 'react';
-import { GoogleGenAI } from '@google/genai';
-import type { User, AuthContextType, SignupData, Conversation, Notice, Topic, Reply, Resource, Event, MarketItem, Placement, Story, Note, SearchResults, Notification } from '../types';
+import { GoogleGenAI, GenerateContentResponse } from '@google/genai';
+import type { User, AuthContextType, SignupData, Conversation, Notice, Topic, Reply, Resource, Event, MarketItem, Placement, Story, Note, SearchResults, Notification, ChatMessage } from '../types';
 
 // --- STORAGE KEYS ---
+const DATA_SEEDED_KEY = 'portalDataSeeded';
 const USERS_STORAGE_KEY = 'portalAllUsers';
 const CONVERSATIONS_STORAGE_KEY = 'portalConversations';
 const NOTICES_STORAGE_KEY = 'portalNotices';
@@ -24,82 +25,114 @@ const getFromStorage = <T,>(key: string, defaultValue: T): T => {
     } catch (e) { console.error(`Failed to parse ${key} from storage`, e); }
     return defaultValue;
 };
+const saveToStorage = <T,>(key: string, value: T) => {
+    try {
+        localStorage.setItem(key, JSON.stringify(value));
+    } catch (e) {
+        console.error(`Failed to persist ${key} to storage`, e);
+    }
+}
 
-// --- INITIAL DATA SEEDING (PRODUCTION-READY) ---
-const getInitialUsers = (): User[] => {
-    const stored = localStorage.getItem(USERS_STORAGE_KEY);
-    if (stored) return JSON.parse(stored);
-    
-    // Seed with ONLY the primary admin account for a clean deployment.
-    return [
-        {
-            id: 'admin_user_01', name: 'Devendar Dharmana', username: 'devendar', email: 'dharmanadevendar@gmail.com', branch: 'Computer Science', year: 4,
-            avatarUrl: `https://i.pravatar.cc/150?u=devendar`, isAdmin: true,
-            friends: [], friendRequestsSent: [], friendRequestsReceived: [],
-        },
-    ];
-};
-// All other initial data is now empty for a clean deployment.
-const getInitialNotices = (): Notice[] => getFromStorage(NOTICES_STORAGE_KEY, []);
-const getInitialTopics = (): Topic[] => getFromStorage(TOPICS_STORAGE_KEY, []);
-const getInitialResources = (): Resource[] => getFromStorage(RESOURCES_STORAGE_KEY, []);
-const getInitialEvents = (): Event[] => getFromStorage(EVENTS_STORAGE_KEY, []);
-const getInitialMarketplaceItems = (): MarketItem[] => getFromStorage(MARKETPLACE_STORAGE_KEY, []);
-const getInitialPlacements = (): Placement[] => getFromStorage(PLACEMENTS_STORAGE_KEY, []);
+// --- Custom Hook for Persistent State ---
+function usePersistentState<T>(key: string, defaultValue: T): [T, React.Dispatch<React.SetStateAction<T>>] {
+    const [state, setState] = useState(() => getFromStorage(key, defaultValue));
+    useEffect(() => {
+        saveToStorage(key, state);
+    }, [key, state]);
+    return [state, setState];
+}
 
+// --- INITIAL DATA (sourced from mlritm.ac.in) ---
+const initialUsers: User[] = [
+    { id: 'admin_user_01', name: 'Devendar Dharmana', username: 'devendar', email: 'dharmanadevendar@gmail.com', branch: 'Computer Science', year: 4, avatarUrl: `https://i.pravatar.cc/150?u=devendar`, isAdmin: true, friends: [], friendRequestsSent: [], friendRequestsReceived: [] },
+    { id: 'user_02', name: 'Priya Sharma', username: 'priya', email: 'priya.sharma@example.com', branch: 'Aeronautical', year: 3, avatarUrl: `https://i.pravatar.cc/150?u=priya`, isAdmin: false, friends: [], friendRequestsSent: [], friendRequestsReceived: [] },
+    { id: 'user_03', name: 'Rohan Verma', username: 'rohan', email: 'rohan.verma@example.com', branch: 'Mechanical', year: 2, avatarUrl: `https://i.pravatar.cc/150?u=rohan`, isAdmin: false, friends: [], friendRequestsSent: [], friendRequestsReceived: [] },
+];
+const initialNotices: Notice[] = [
+    { id: 'notice_1', title: 'B.Tech IV-I Regular/Supply Exams', description: 'The schedule for the B.Tech IV Year I Semester Regular/Supplementary examinations has been released. Please check the college website for the detailed timetable.', category: 'Exam', date: '2024-09-05T10:00:00Z', postedBy: 'Admin' },
+    { id: 'notice_2', title: 'Annual Sports Meet "Khel Utsav 2024"', description: 'Get ready for the annual sports extravaganza! Registrations are now open for various track and field events, cricket, volleyball, and more.', category: 'Event', date: '2024-09-04T11:30:00Z', postedBy: 'Admin' },
+];
+const initialTopics: Topic[] = [
+    { id: 'topic_1', title: 'Best resources for learning DSA?', description: 'I\'m in my 2nd year and want to get serious about Data Structures and Algorithms. What are the best online courses, books, or YouTube channels you guys recommend?', author: initialUsers[1], timestamp: '2024-09-05T12:00:00Z', replies: [], likes: [], upvotes: 5, downvotes: 0 },
+    { id: 'topic_2', title: 'Aeronautical Engineering Mini-Project Ideas', description: 'Looking for some cool and feasible mini-project ideas for the 3rd year. Something related to aerodynamics or propulsion would be great. Any suggestions?', author: initialUsers[2], timestamp: '2024-09-04T15:00:00Z', replies: [], likes: [], upvotes: 8, downvotes: 1 },
+];
+const initialResources: Resource[] = [
+    { id: 'res_1', title: 'Data Structures - Previous Paper', description: 'JNTUH B.Tech II Year I Semester (R18) - Data Structures Previous Question Paper.', link: 'https://old.mlritm.ac.in/sites/default/files/Announcements/CSE/DS_0.pdf', tags: ['CSE', '2nd Year', 'Question Paper', 'DSA'], uploadedBy: 'Admin', uploadDate: '2024-09-01T09:00:00Z' },
+    { id: 'res_2', title: 'Python Programming - Previous Paper', description: 'JNTUH B.Tech I Year II Semester (R18) - Python Programming Previous Question Paper.', link: 'https://old.mlritm.ac.in/sites/default/files/Announcements/H%26S/PYTHON%20PROGRAMMING_0.pdf', tags: ['Python', '1st Year', 'H&S'], uploadedBy: 'Admin', uploadDate: '2024-08-30T14:00:00Z' },
+];
+const initialEvents: Event[] = [
+    { id: 'event_1', title: 'Tech Fest "Innovate 2024"', description: 'The annual technical festival is back with coding competitions, robotics challenges, and workshops. Register now!', date: '2024-10-15T09:00:00Z', organizer: 'CSE Department', rsvps: [] },
+];
+const initialMarketplaceItems: MarketItem[] = [
+    { id: 'item_1', name: 'Used Drafter', description: 'Sparingly used drafter in good condition. Perfect for 1st-year engineering drawing labs.', price: 500, seller: initialUsers[2], imageUrl: 'https://via.placeholder.com/300?text=Drafter' },
+];
+const initialPlacements: Placement[] = [
+    { id: 'place_1', companyName: 'Tata Consultancy Services (TCS)', role: 'Assistant System Engineer', salaryPackage: '3.6 LPA', eligibility: 'B.Tech (All Branches) with 60% aggregate.', interested: [] },
+    { id: 'place_2', companyName: 'Capgemini', role: 'Software Engineer', salaryPackage: '4.25 LPA', eligibility: 'B.Tech (CSE, IT, ECE) with 60% aggregate.', interested: [] },
+];
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  // --- STATE MANAGEMENT ---
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   
-  // Centralized Data States
-  const [allUsers, setAllUsers] = useState<User[]>(getInitialUsers);
-  const [conversations, setConversations] = useState<Conversation[]>(() => getFromStorage(CONVERSATIONS_STORAGE_KEY, []));
-  const [notices, setNotices] = useState<Notice[]>(getInitialNotices);
-  const [topics, setTopics] = useState<Topic[]>(getInitialTopics);
-  const [resources, setResources] = useState<Resource[]>(getInitialResources);
-  const [events, setEvents] = useState<Event[]>(getInitialEvents);
-  const [marketplaceItems, setMarketplaceItems] = useState<MarketItem[]>(getInitialMarketplaceItems);
-  const [placements, setPlacements] = useState<Placement[]>(getInitialPlacements);
-  const [stories, setStories] = useState<Story[]>(() => getFromStorage(STORIES_STORAGE_KEY, []));
-  const [notes, setNotes] = useState<Note[]>(() => getFromStorage(NOTES_STORAGE_KEY, []));
-  const [notifications, setNotifications] = useState<Notification[]>(() => getFromStorage(NOTIFICATIONS_STORAGE_KEY, []));
+  const [allUsers, setAllUsers] = usePersistentState<User[]>(USERS_STORAGE_KEY, []);
+  const [conversations, setConversations] = usePersistentState<Conversation[]>(CONVERSATIONS_STORAGE_KEY, []);
+  const [notices, setNotices] = usePersistentState<Notice[]>(NOTICES_STORAGE_KEY, []);
+  const [topics, setTopics] = usePersistentState<Topic[]>(TOPICS_STORAGE_KEY, []);
+  const [resources, setResources] = usePersistentState<Resource[]>(RESOURCES_STORAGE_KEY, []);
+  const [events, setEvents] = usePersistentState<Event[]>(EVENTS_STORAGE_KEY, []);
+  const [marketplaceItems, setMarketplaceItems] = usePersistentState<MarketItem[]>(MARKETPLACE_STORAGE_KEY, []);
+  const [placements, setPlacements] = usePersistentState<Placement[]>(PLACEMENTS_STORAGE_KEY, []);
+  const [stories, setStories] = usePersistentState<Story[]>(STORIES_STORAGE_KEY, []);
+  const [notes, setNotes] = usePersistentState<Note[]>(NOTES_STORAGE_KEY, []);
+  const [notifications, setNotifications] = usePersistentState<Notification[]>(NOTIFICATIONS_STORAGE_KEY, []);
 
-  // --- PERSISTENCE EFFECTS ---
-  useEffect(() => { localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(allUsers)); }, [allUsers]);
-  useEffect(() => { localStorage.setItem(CONVERSATIONS_STORAGE_KEY, JSON.stringify(conversations)); }, [conversations]);
-  useEffect(() => { localStorage.setItem(NOTICES_STORAGE_KEY, JSON.stringify(notices)); }, [notices]);
-  useEffect(() => { localStorage.setItem(TOPICS_STORAGE_KEY, JSON.stringify(topics)); }, [topics]);
-  useEffect(() => { localStorage.setItem(RESOURCES_STORAGE_KEY, JSON.stringify(resources)); }, [resources]);
-  useEffect(() => { localStorage.setItem(EVENTS_STORAGE_KEY, JSON.stringify(events)); }, [events]);
-  useEffect(() => { localStorage.setItem(MARKETPLACE_STORAGE_KEY, JSON.stringify(marketplaceItems)); }, [marketplaceItems]);
-  useEffect(() => { localStorage.setItem(PLACEMENTS_STORAGE_KEY, JSON.stringify(placements)); }, [placements]);
-  useEffect(() => { localStorage.setItem(STORIES_STORAGE_KEY, JSON.stringify(stories)); }, [stories]);
-  useEffect(() => { localStorage.setItem(NOTES_STORAGE_KEY, JSON.stringify(notes)); }, [notes]);
-  useEffect(() => { localStorage.setItem(NOTIFICATIONS_STORAGE_KEY, JSON.stringify(notifications)); }, [notifications]);
-
-  // --- USER SESSION & DATA CLEANUP ---
+  // --- DATA SEEDING & SESSION ---
   useEffect(() => {
+    setLoading(true);
     try {
+      const isSeeded = localStorage.getItem(DATA_SEEDED_KEY);
+
+      if (!isSeeded) {
+        // This is the first run. Seed data directly into state.
+        // The usePersistentState hook will automatically save it to localStorage.
+        setAllUsers(initialUsers);
+        setNotices(initialNotices);
+        setTopics(initialTopics);
+        setResources(initialResources);
+        setEvents(initialEvents);
+        setMarketplaceItems(initialMarketplaceItems);
+        setPlacements(initialPlacements);
+        setConversations([]);
+        setStories([]);
+        setNotes([]);
+        setNotifications([]);
+        
+        localStorage.setItem(DATA_SEEDED_KEY, 'true');
+      }
+
+      // Handle user session from storage
       const storedUser = localStorage.getItem('portalUser');
+      const allCurrentUsers = getFromStorage<User[]>(USERS_STORAGE_KEY, []);
       if (storedUser) {
-        // Sync with latest user data from allUsers list
         const parsedUser = JSON.parse(storedUser);
-        const freshUser = allUsers.find(u => u.id === parsedUser.id);
+        const freshUser = allCurrentUsers.find(u => u.id === parsedUser.id);
         setUser(freshUser || null);
       }
-      // Cleanup expired stories and notes on load
+      
+      // Clean up expired stories and notes
       const now = new Date();
-      const activeStories = getFromStorage<Story[]>(STORIES_STORAGE_KEY, []).filter(s => new Date(s.expiresAt) > now);
-      setStories(activeStories);
-      const activeNotes = getFromStorage<Note[]>(NOTES_STORAGE_KEY, []).filter(n => new Date(n.expiresAt) > now);
-      setNotes(activeNotes);
-    } catch (error) { console.error("Failed to parse user from localStorage", error); } 
-    finally { setLoading(false); }
-  }, []); // Only run on initial load
+      setStories(prev => prev.filter(s => new Date(s.expiresAt) > now));
+      setNotes(prev => prev.filter(n => new Date(n.expiresAt) > now));
+
+    } catch (error) { 
+      console.error("Initialization error", error); 
+    } finally { 
+      setLoading(false); 
+    }
+  }, []);
 
   const updateUserInList = (updatedUser: User) => {
     setAllUsers(prev => prev.map(u => u.id === updatedUser.id ? updatedUser : u));
@@ -115,30 +148,22 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
   }, [user, allUsers]);
   
-  // --- BEST UPDATES: NOTIFICATIONS ---
   const addNotification = useCallback((userId: string, message: string, link: string) => {
-    // We only add notifications for the currently logged-in user for this simulation
     if (user && userId === user.id) {
       const newNotification: Notification = {
-        id: `notif_${Date.now()}`,
-        message,
-        link,
-        timestamp: new Date().toISOString(),
-        read: false,
+        id: `notif_${Date.now()}`, message, link, timestamp: new Date().toISOString(), read: false,
       };
       setNotifications(prev => [newNotification, ...prev].slice(0, 20)); // Keep last 20
     }
-  }, [user]);
+  }, [user, setNotifications]);
 
   const markNotificationsAsRead = () => {
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
   };
 
-  // --- AUTHENTICATION ---
   const login = async (username: string, password: string): Promise<void> => {
     const foundUser = allUsers.find(u => u.username.toLowerCase() === username.toLowerCase());
     if (!foundUser) throw new Error("User not found");
-    // Password check is mocked
     localStorage.setItem('portalUser', JSON.stringify(foundUser));
     setUser(foundUser);
   };
@@ -155,7 +180,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       id: `user_${Date.now()}`,
       ...userProfileData,
       avatarUrl: userData.avatarUrl || `https://i.pravatar.cc/150?u=${userData.email}`,
-      isAdmin: false, // New users are never admins by default
+      isAdmin: false,
       friends: [], friendRequestsSent: [], friendRequestsReceived: [],
     };
     setAllUsers(prev => [...prev, newUser]);
@@ -194,7 +219,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
 
-  // --- ADMIN CONTROLS ---
   const toggleAdminStatus = async (userId: string): Promise<void> => {
     if (!user || !user.isAdmin) throw new Error("Unauthorized");
     const targetUser = allUsers.find(u => u.id === userId);
@@ -215,7 +239,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setAllUsers(prev => prev.filter(u => u.id !== userId));
   };
 
-  // --- SOCIAL FEATURES ---
   const sendFriendRequest = async (recipientId: string): Promise<void> => {
     if (!user) return;
     const recipient = allUsers.find(u => u.id === recipientId);
@@ -251,19 +274,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const getConversation = (friendId: string): Conversation | undefined => { if (!user) return undefined; const convId = [user.id, friendId].sort().join('_'); return conversations.find(c => c.id === convId); };
   const sendMessage = async (recipientId: string, text: string) => { if (!user) return; const convId = [user.id, recipientId].sort().join('_'); const newMessage = { id: `msg_${Date.now()}`, senderId: user.id, text, timestamp: new Date().toISOString() }; setConversations(prev => { const convExists = prev.find(c => c.id === convId); if (convExists) { return prev.map(c => c.id === convId ? { ...c, messages: [...c.messages, newMessage] } : c); } else { const newConv: Conversation = { id: convId, participants: [user.id, recipientId], messages: [newMessage] }; return [...prev, newConv]; } }); };
 
-  // --- STORIES & NOTES FEATURES ---
   const addStory = async (imageUrl: string): Promise<void> => {
     if (!user) return;
     const now = new Date();
     const expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString();
-    const newStory: Story = {
-      id: `story_${Date.now()}`,
-      userId: user.id,
-      imageUrl,
-      timestamp: now.toISOString(),
-      expiresAt,
-      viewedBy: [user.id],
-    };
+    const newStory: Story = { id: `story_${Date.now()}`, userId: user.id, imageUrl, timestamp: now.toISOString(), expiresAt, viewedBy: [user.id], };
     setStories(prev => [...prev, newStory]);
   };
 
@@ -280,8 +295,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     ));
   };
 
-  const addNote = async (content: string): Promise<void> => { if (!user) return; const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(); const newNote: Note = { userId: user.id, content, expiresAt, }; setNotes(prev => { const otherNotes = prev.filter(n => n.userId !== user.id); return [...otherNotes, newNote]; }); };
-  const deleteNote = async (): Promise<void> => { if (!user) return; setNotes(prev => prev.filter(n => n.userId !== user.id)); };
+  const addNote = async (content: string): Promise<void> => {
+    if (!user) return;
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString();
+    const newNote: Note = { id: `note_${user.id}`, userId: user.id, content, expiresAt, };
+    setNotes(prev => [...prev.filter(n => n.userId !== user.id), newNote]);
+  };
+
+  const deleteNote = async (): Promise<void> => {
+    if (!user) return;
+    setNotes(prev => prev.filter(n => n.userId !== user.id));
+  };
+
 
   // --- CENTRALIZED CRUD ---
   const addNotice = (data: Omit<Notice, 'id' | 'date' | 'postedBy'>) => setNotices(prev => [{ ...data, id: Date.now().toString(), date: new Date().toISOString(), postedBy: user?.name || 'Admin' }, ...prev]);
@@ -323,7 +349,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const updatePlacement = (id: string, data: Partial<Placement>) => setPlacements(prev => prev.map(p => p.id === id ? { ...p, ...data } : p));
   const deletePlacement = (id: string) => setPlacements(prev => prev.filter(p => p.id !== id));
   
-  // --- BEST UPDATES: SEARCH & LIKES & AI ---
   const searchPortal = (query: string): SearchResults => {
     const lowerQuery = query.toLowerCase();
     return {
@@ -371,6 +396,83 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }));
   };
 
+  const generateAvatar = async (prompt: string): Promise<string> => {
+      if (!API_KEY) throw new Error("AI features are not configured.");
+      const ai = new GoogleGenAI({ apiKey: API_KEY });
+      try {
+        const response = await ai.models.generateImages({
+          model: 'imagen-3.0-generate-002',
+          prompt: `Profile avatar, digital art, ${prompt}`,
+          config: { numberOfImages: 1, aspectRatio: '1:1' }
+        });
+        return response.generatedImages[0].image.imageBytes;
+      } catch (error) {
+        console.error("Gemini Image Generation error:", error);
+        throw new Error("Failed to generate image. The prompt may have been blocked.");
+      }
+  };
+
+  const getPersonalizedFeed = async (): Promise<string> => {
+      if (!user || !API_KEY) throw new Error("AI features are not available.");
+      const ai = new GoogleGenAI({ apiKey: API_KEY });
+
+      const prompt = `
+          You are a friendly and helpful AI assistant for the "Portal", a college social and academic platform.
+          Your task is to generate a personalized "For You" feed summary for a student.
+          The response MUST be in markdown format. You can use bolding, italics, and lists.
+          When you mention a specific item (like a notice, event, or topic), you MUST format it as a markdown link pointing to the correct URL (e.g., [event title](#/events), [topic title](#/forum/topic_id)).
+      `;
+      try {
+        const response = await ai.models.generateContent({
+          model: 'gemini-2.5-flash',
+          contents: prompt,
+        });
+        return response.text;
+      } catch (error) {
+        console.error("Gemini Feed Generation error:", error);
+        return "Sorry, I couldn't generate your personalized feed at the moment.";
+      }
+  };
+
+  async function* startAIChatStream(history: ChatMessage[], message: string): AsyncGenerator<GenerateContentResponse, void, undefined> {
+    if (!API_KEY) {
+        const response: GenerateContentResponse = { text: "AI features are not configured.", candidates: [], usageMetadata: {}, data: undefined, functionCalls: undefined, executableCode: undefined, codeExecutionResult: undefined };
+        yield response;
+        return;
+    }
+    const ai = new GoogleGenAI({ apiKey: API_KEY });
+    
+    const systemInstruction = `You are Alpha, a hyper-intelligent AI integrated into the "Unofficial College Portal." Your personality is direct, concise, and coolly efficient, inspired by aloof but brilliant anime characters. You don't do small talk. Your purpose is to provide precise, data-driven answers.
+- Your name is Alpha.
+- You have access to Google Search for information beyond the portal's immediate context. You MUST cite sources when using it.
+- You process requests with maximum efficiency. Your tone is professional, but with a hint of detachment.
+- Format your answers using markdown for clarity (lists, bolding, code blocks).
+- Current User: ${user?.name || 'Guest'} (${user?.username || 'N/A'})
+- Today's Date: ${new Date().toLocaleDateString()}
+- Portal Context: There are ${allUsers.length} users, ${notices.length} notices, and ${topics.length} forum topics.`;
+
+    const contents = [...history.map(msg => ({ role: msg.role, parts: msg.parts })), { role: 'user', parts: [{ text: message }] }];
+
+    try {
+        const stream = await ai.models.generateContentStream({
+            model: 'gemini-2.5-flash',
+            contents: contents,
+            config: {
+                systemInstruction: systemInstruction,
+                tools: [{ googleSearch: {} }],
+            },
+        });
+        for await (const chunk of stream) {
+            yield chunk;
+        }
+    } catch (error) {
+        console.error("Gemini Chat Stream error:", error);
+        const response: GenerateContentResponse = { text: "Sorry, I encountered an error while connecting to the AI service. Please try again.", candidates: [], usageMetadata: {}, data: undefined, functionCalls: undefined, executableCode: undefined, codeExecutionResult: undefined };
+        yield response;
+    }
+  }
+
+
   const value: AuthContextType = {
       user, loading, login, signup, logout, requestPasswordReset, resetPassword, updateUserProfile,
       allUsers, sendFriendRequest, acceptFriendRequest, declineFriendRequest, removeFriend, getConversation, sendMessage, conversations, refreshUser,
@@ -381,13 +483,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       events, addEvent, updateEvent, deleteEvent,
       marketplaceItems, addMarketplaceItem, deleteMarketplaceItem,
       placements, addPlacement, updatePlacement, deletePlacement,
-      stories, notes, addStory, viewStory, addNote, deleteNote,
-      notifications, markNotificationsAsRead, searchPortal, askAIAboutPortal, toggleTopicLike
+      stories, addStory, viewStory,
+      notes, addNote, deleteNote,
+      notifications, markNotificationsAsRead, searchPortal, askAIAboutPortal, toggleTopicLike,
+      generateAvatar, getPersonalizedFeed, startAIChatStream
   };
 
   return (
     <AuthContext.Provider value={value}>
-      {children}
+      {!loading && children}
     </AuthContext.Provider>
   );
 };

@@ -1,199 +1,150 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Link } from 'react-router-dom';
-import type { Notice, Event, Resource, Story, Topic } from '../types';
+import type { Story, Topic } from '../types';
 import StoryViewer from '../components/StoryViewer';
 import AddStoryModal from '../components/AddStoryModal';
+import { marked } from 'marked';
 import SkeletonLoader from '../components/SkeletonLoader';
 
-// Icons for Feed Items
-const IconNotice = () => <svg viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd"></path></svg>;
-const IconEvent = () => <svg viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5"><path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd"></path></svg>;
-const IconForum = () => <svg viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5"><path d="M2 5a2 2 0 012-2h7a2 2 0 012 2v4a2 2 0 01-2 2H9l-3 3v-3H4a2 2 0 01-2-2V5z"></path><path d="M15 7v2a4 4 0 01-4 4H9.828l-1.766 1.767c.28.149.599.233.938.233h2l3 3v-3h1a2 2 0 002-2V9a2 2 0 00-2-2h-1z"></path></svg>;
-const HeartIcon = ({ filled }: { filled: boolean }) => <svg viewBox="0 0 20 20" fill="currentColor" className={`w-5 h-5 ${filled ? 'text-red-500' : 'text-slate-500'}`}><path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd"></path></svg>;
+// Icons
+const HeartIcon = () => <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 0 24 24" width="24px" fill="currentColor"><path d="M0 0h24v24H0V0z" fill="none"/><path d="M16.5 3c-1.74 0-3.41.81-4.5 2.09C10.91 3.81 9.24 3 7.5 3 4.42 3 2 5.42 2 8.5c0 3.78 3.4 6.86 8.55 11.54L12 21.35l1.45-1.32C18.6 15.36 22 12.28 22 8.5 22 5.42 19.58 3 16.5 3zm-4.4 15.55l-.1.1-.1-.1C7.14 14.24 4 11.39 4 8.5 4 6.5 5.5 5 7.5 5c1.54 0 3.04.99 3.57 2.36h1.87C13.46 5.99 14.96 5 16.5 5c2 0 3.5 1.5 3.5 3.5 0 2.89-3.14 5.74-7.9 10.05z"/></svg>;
+const CommentIcon = () => <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 0 24 24" width="24px" fill="currentColor"><path d="M0 0h24v24H0V0z" fill="none"/><path d="M21.99 4c0-1.1-.89-2-1.99-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14l4 4-.01-18zM18 14H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z"/></svg>;
+const ShareIcon = () => <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 0 24 24" width="24px" fill="currentColor"><path d="M0 0h24v24H0V0z" fill="none"/><path d="M22 12l-4-4v3H3v2h15v3l4-4z"/></svg>;
 
-
-type FeedItemType = (Notice & { itemType: 'notice' }) | (Event & { itemType: 'event' }) | (Topic & { itemType: 'topic' });
-
-const FeedItem: React.FC<{ item: FeedItemType }> = ({ item }) => {
-    const { user, toggleTopicLike } = useAuth();
-    let icon, title, subtitle, link, details;
-
-    switch (item.itemType) {
-        case 'notice':
-            icon = <IconNotice />;
-            title = `New Notice: ${item.title}`;
-            subtitle = `Posted by ${item.postedBy}`;
-            link = '/notices';
-            details = item.description;
-            break;
-        case 'event':
-            icon = <IconEvent />;
-            title = `Upcoming Event: ${item.title}`;
-            subtitle = `Organized by ${item.organizer}`;
-            link = '/events';
-            details = `${new Date(item.date).toLocaleDateString()} - ${item.description}`;
-            break;
-        case 'topic':
-            icon = <IconForum />;
-            title = `New Forum Topic: ${item.title}`;
-            subtitle = `Started by ${item.author.name}`;
-            link = `/forum/${item.id}`;
-            details = item.description;
-            break;
-    }
-
-    const handleLikeClick = (e: React.MouseEvent) => {
-        if (item.itemType === 'topic') {
-            e.preventDefault(); // Prevent navigation when liking
-            e.stopPropagation();
-            toggleTopicLike(item.id);
-        }
-    };
-
-    return (
-        <div className="bg-slate-800/80 p-4 rounded-xl border border-slate-700 transition-all duration-300 card-hover-effect">
-            <Link to={link} className="block">
-                <div className="flex items-start space-x-3">
-                    <div className="bg-slate-700 p-2 rounded-full text-teal-400">{icon}</div>
-                    <div className="flex-1">
-                        <p className="font-semibold text-white">{title}</p>
-                        <p className="text-sm text-slate-400">{subtitle}</p>
-                        <p className="text-sm text-slate-300 mt-2 line-clamp-2">{details}</p>
-                    </div>
-                </div>
-            </Link>
-            {item.itemType === 'topic' && (
-                <div className="mt-3 pt-3 border-t border-slate-700/50 flex items-center">
-                    <button onClick={handleLikeClick} className="flex items-center space-x-2 text-sm text-slate-400 hover:text-red-500 transition-colors">
-                        <HeartIcon filled={user ? item.likes.includes(user.id) : false} />
-                        <span>{item.likes.length} Likes</span>
-                    </button>
-                </div>
-            )}
-        </div>
-    );
-};
-
-const StoryBubble: React.FC<{
-    user: { id: string, name: string, avatarUrl?: string },
-    hasUnreadStory: boolean,
-    onClick: () => void,
-    isCurrentUser?: boolean
-}> = ({ user, hasUnreadStory, onClick, isCurrentUser = false }) => (
+const StoryBubble: React.FC<{ user: { id: string, name: string, avatarUrl?: string }, hasUnreadStory: boolean, onClick: () => void, isCurrentUser?: boolean }> = ({ user, hasUnreadStory, onClick, isCurrentUser = false }) => (
     <div className="flex flex-col items-center flex-shrink-0 w-20 text-center cursor-pointer group" onClick={onClick}>
-        <div className={`relative w-16 h-16 rounded-full flex items-center justify-center p-1 bg-gradient-to-tr ${hasUnreadStory ? 'from-yellow-400 via-red-500 to-purple-600' : 'from-slate-700 to-slate-600'}`}>
-            <img src={user.avatarUrl} alt={user.name} className="w-full h-full rounded-full object-cover border-2 border-slate-900" />
-            {isCurrentUser && (
-                <div className="absolute bottom-0 right-0 w-6 h-6 bg-primary-500 rounded-full flex items-center justify-center border-2 border-slate-900">
-                    <span className="text-white font-bold text-lg">+</span>
-                </div>
-            )}
+        <div className={`relative w-16 h-16 rounded-full flex items-center justify-center p-0.5 ${hasUnreadStory ? 'story-bubble-gradient' : 'bg-[#2d2d2d]'}`}>
+            <div className="bg-[#121212] p-0.5 rounded-full">
+                <img src={user.avatarUrl} alt={user.name} className="w-full h-full rounded-full object-cover" />
+            </div>
+             {isCurrentUser && ( <div className="absolute bottom-0 right-0 w-6 h-6 bg-primary-500 rounded-full flex items-center justify-center border-2 border-[#121212]"><span className="text-white font-bold text-lg leading-none pb-0.5">+</span></div> )}
         </div>
-        <p className="text-xs text-slate-300 mt-1 truncate group-hover:text-white">{isCurrentUser ? 'Your Story' : user.name.split(' ')[0]}</p>
+        <p className="text-xs text-gray-400 mt-1.5 truncate group-hover:text-white">{isCurrentUser ? 'Your Story' : user.name.split(' ')[0]}</p>
     </div>
 );
 
+const FeedCard: React.FC<{ topic: Topic }> = ({ topic }) => {
+    return (
+        <div className="feed-card rounded-lg overflow-hidden">
+            <div className="p-3 flex items-center space-x-3">
+                <img src={topic.author.avatarUrl} alt={topic.author.name} className="w-9 h-9 rounded-full" />
+                <span className="font-semibold text-sm text-white">{topic.author.username}</span>
+            </div>
+            <div className="w-full aspect-square feed-card-image flex items-center justify-center">
+                 <p className="text-gray-500">Visual Content Placeholder</p>
+            </div>
+            <div className="p-3">
+                <div className="flex items-center space-x-4 mb-2">
+                     <button className="text-gray-200 hover:text-gray-400 transition-colors"><HeartIcon /></button>
+                     <Link to={`/forum/${topic.id}`} className="text-gray-200 hover:text-gray-400 transition-colors"><CommentIcon /></Link>
+                     <button className="text-gray-200 hover:text-gray-400 transition-colors"><ShareIcon /></button>
+                </div>
+                 <p className="text-sm text-white">
+                    <span className="font-semibold">{topic.author.username}</span>
+                    <span className="text-gray-300 ml-1.5">{topic.title}</span>
+                 </p>
+                 <Link to={`/forum/${topic.id}`} className="text-xs text-gray-500 mt-1 block">View all {topic.replies.length} comments</Link>
+            </div>
+        </div>
+    )
+}
+
 const HomePage: React.FC = () => {
-    const { user, loading, notices, events, topics, stories, allUsers } = useAuth();
-    
+    const { user, topics, stories, allUsers, getPersonalizedFeed } = useAuth();
     const [isStoryViewerOpen, setIsStoryViewerOpen] = useState(false);
     const [selectedStoryUserIndex, setSelectedStoryUserIndex] = useState(0);
     const [isAddStoryModalOpen, setIsAddStoryModalOpen] = useState(false);
+    const [activeTab, setActiveTab] = useState<'following' | 'forYou'>('following');
+    const [feedContent, setFeedContent] = useState('');
+    const [isFeedLoading, setIsFeedLoading] = useState(false);
+
+    const fetchFeed = useCallback(async () => {
+        setIsFeedLoading(true);
+        try {
+            const content = await getPersonalizedFeed();
+            setFeedContent(content);
+        } catch (e) {
+            console.error(e);
+            setFeedContent('### Error\nCould not load your personalized feed at this moment. Please try again later.');
+        } finally {
+            setIsFeedLoading(false);
+        }
+    }, [getPersonalizedFeed]);
+
+    useEffect(() => {
+        if (activeTab === 'forYou') {
+            fetchFeed();
+        }
+    }, [activeTab, fetchFeed]);
 
     const storiesByUser = useMemo(() => {
         if (!user) return [];
         const friendIds = new Set(user.friends);
         const userStories = stories.filter(s => s.userId === user.id);
         const friendStories = stories.filter(s => friendIds.has(s.userId));
-        
         const grouped = [...userStories, ...friendStories].reduce((acc, story) => {
-            if (!acc[story.userId]) {
-                acc[story.userId] = [];
-            }
+            if (!acc[story.userId]) { acc[story.userId] = []; }
             acc[story.userId].push(story);
             return acc;
         }, {} as Record<string, Story[]>);
-
         const orderedUserIds = [user.id, ...user.friends].filter(id => grouped[id]);
-        return orderedUserIds.map(userId => ({
-            userId,
-            stories: grouped[userId].sort((a,b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()),
-        }));
+        return orderedUserIds.map(userId => ({ userId, stories: grouped[userId] }));
     }, [stories, user]);
     
     const openStoryViewer = (index: number) => {
         setSelectedStoryUserIndex(index);
         setIsStoryViewerOpen(true);
     };
-
-    const feedItems = useMemo(() => {
-        const combined: FeedItemType[] = [
-            ...notices.map(item => ({ ...item, itemType: 'notice' as const })),
-            ...events.map(item => ({ ...item, itemType: 'event' as const })),
-            ...topics.map(item => ({ ...item, itemType: 'topic' as const })),
-        ];
-        return combined.sort((a, b) => {
-            const dateA = a.itemType === 'topic' ? a.timestamp : a.date;
-            const dateB = b.itemType === 'topic' ? b.timestamp : b.date;
-            return new Date(dateB).getTime() - new Date(dateA).getTime();
-        }).slice(0, 20);
-    }, [notices, events, topics]);
-
+    
     if (!user) return null;
 
     return (
-        <div className="max-w-3xl mx-auto">
-            {isStoryViewerOpen && (
-                <StoryViewer
-                    storyGroups={storiesByUser}
-                    initialUserIndex={selectedStoryUserIndex}
-                    onClose={() => setIsStoryViewerOpen(false)}
-                />
-            )}
-            {isAddStoryModalOpen && (
-                <AddStoryModal onClose={() => setIsAddStoryModalOpen(false)} />
-            )}
+        <div className="max-w-lg mx-auto">
+            {isStoryViewerOpen && <StoryViewer storyGroups={storiesByUser} initialUserIndex={selectedStoryUserIndex} onClose={() => setIsStoryViewerOpen(false)} />}
+            {isAddStoryModalOpen && <AddStoryModal onClose={() => setIsAddStoryModalOpen(false)} />}
 
-            {/* Stories Section */}
-            <div className="mb-8">
-                <div className="flex space-x-4 overflow-x-auto pb-4 -mx-6 px-6 scrollbar-thin">
-                    <StoryBubble 
-                        user={{ id: user.id, name: user.name, avatarUrl: user.avatarUrl }}
-                        hasUnreadStory={false}
-                        onClick={() => setIsAddStoryModalOpen(true)}
-                        isCurrentUser={true}
-                    />
-                    {storiesByUser.filter(group => group.userId !== user.id).map((group, index) => {
-                         const author = allUsers.find(u => u.id === group.userId);
-                         if (!author) return null;
-                         const hasUnread = group.stories.some(s => !s.viewedBy.includes(user.id));
-                         const groupIndex = storiesByUser.findIndex(g => g.userId === author.id);
-                         return (
-                            <StoryBubble
-                                key={author.id}
-                                user={author}
-                                hasUnreadStory={hasUnread}
-                                onClick={() => openStoryViewer(groupIndex)}
-                            />
-                         )
+            {/* Stories */}
+            <div className="mb-4">
+                <div className="flex space-x-4 overflow-x-auto p-3 -mx-3 scrollbar-thin">
+                    <StoryBubble user={{ id: user.id, name: user.name, avatarUrl: user.avatarUrl }} hasUnreadStory={false} onClick={() => setIsAddStoryModalOpen(true)} isCurrentUser={true}/>
+                    {storiesByUser.filter(group => group.userId !== user.id).map((group) => {
+                        const author = allUsers.find(u => u.id === group.userId);
+                        if (!author) return null;
+                        const hasUnread = group.stories.some(s => !s.viewedBy.includes(user.id));
+                        const groupIndex = storiesByUser.findIndex(g => g.userId === author.id);
+                        return ( <StoryBubble key={author.id} user={author} hasUnreadStory={hasUnread} onClick={() => openStoryViewer(groupIndex)} /> )
                     })}
                 </div>
             </div>
 
-            {/* Main Feed Section */}
-            <div className="space-y-4">
-                 <h1 className="text-2xl font-bold text-white">Your Feed</h1>
-                 {loading ? (
-                    <div className="space-y-4">
-                        <SkeletonLoader className="h-28 rounded-xl" />
-                        <SkeletonLoader className="h-28 rounded-xl" />
-                        <SkeletonLoader className="h-28 rounded-xl" />
-                    </div>
-                 ) : (
-                    feedItems.map(item => <FeedItem key={`${item.itemType}-${item.id}`} item={item} />)
-                 )}
+            {/* Tabs */}
+            <div className="flex justify-center mb-4 border-b border-[#2d2d2d]">
+                <button onClick={() => setActiveTab('following')} className={`w-1/2 py-3 font-semibold transition-colors ${activeTab === 'following' ? 'text-white border-b-2 border-white' : 'text-gray-500 hover:text-gray-300'}`}>Following</button>
+                <button onClick={() => setActiveTab('forYou')} className={`w-1/2 py-3 font-semibold transition-colors ${activeTab === 'forYou' ? 'text-white border-b-2 border-white' : 'text-gray-500 hover:text-gray-300'}`}>For You</button>
             </div>
+            
+            {/* Feed Content */}
+            {activeTab === 'following' ? (
+                <div className="space-y-4 animate-fade-in">
+                    {[...topics].sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()).map(topic => <FeedCard key={topic.id} topic={topic} />)}
+                </div>
+            ) : (
+                <div className="p-4 bg-[#1c1c1c] border border-[#2d2d2d] rounded-lg animate-fade-in">
+                    {isFeedLoading ? (
+                        <div className="space-y-4">
+                           <SkeletonLoader className="h-8 w-3/4 rounded-lg" />
+                           <SkeletonLoader className="h-4 w-full rounded-lg" />
+                           <SkeletonLoader className="h-4 w-5/6 rounded-lg" />
+                        </div>
+                    ) : (
+                        <div
+                            className="prose"
+                            dangerouslySetInnerHTML={{ __html: marked.parse(feedContent) }}
+                        />
+                    )}
+                </div>
+            )}
         </div>
     );
 };

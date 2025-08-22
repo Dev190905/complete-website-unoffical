@@ -1,3 +1,5 @@
+import { GenerateContentResponse } from "@google/genai";
+
 // Existing types
 export interface User {
   id: string;
@@ -15,7 +17,6 @@ export interface User {
 
 export type SignupData = Omit<User, 'id' | 'isAdmin' | 'friends' | 'friendRequestsSent' | 'friendRequestsReceived' > & { password: string };
 
-// Step 2: Notices
 export type NoticeCategory = 'Exam' | 'Event' | 'General' | 'Scholarship' | 'Club';
 export interface Notice {
   id: string;
@@ -26,7 +27,6 @@ export interface Notice {
   postedBy: string; // User name
 }
 
-// Step 3: Forums
 export interface Reply {
   id: string;
   content: string;
@@ -47,7 +47,6 @@ export interface Topic {
   downvotes: number;
 }
 
-// Step 4: Resources
 export interface Resource {
   id: string;
   title: string;
@@ -59,7 +58,6 @@ export interface Resource {
   uploadDate: string; // ISO string
 }
 
-// Step 5: Events
 export interface Event {
   id: string;
   title: string;
@@ -69,7 +67,6 @@ export interface Event {
   rsvps: string[]; // array of user IDs
 }
 
-// Step 6: Marketplace
 export interface MarketItem {
   id:string;
   name: string;
@@ -79,7 +76,6 @@ export interface MarketItem {
   imageUrl?: string;
 }
 
-// Step 7: Placements
 export interface Placement {
   id: string;
   companyName: string;
@@ -89,7 +85,6 @@ export interface Placement {
   interested: string[]; // array of user IDs
 }
 
-// Step 8: Map
 export interface MapMarker {
   id: string;
   name: string;
@@ -97,13 +92,6 @@ export interface MapMarker {
   position: { top: string; left: string };
 }
 
-// Generic Chatbot Types
-export interface ChatMessage {
-    role: 'user' | 'model';
-    parts: { text: string }[];
-}
-
-// New types for social features
 export interface DirectMessage {
   id: string;
   senderId: string;
@@ -117,7 +105,13 @@ export interface Conversation {
   messages: DirectMessage[];
 }
 
-// New types for Stories and Notes
+export interface Note {
+  id: string;
+  userId: string;
+  content: string;
+  expiresAt: string; // ISO string
+}
+
 export interface Story {
   id: string;
   userId: string;
@@ -127,13 +121,6 @@ export interface Story {
   viewedBy: string[]; // array of user IDs
 }
 
-export interface Note {
-  userId: string;
-  content: string;
-  expiresAt: string; // ISO string
-}
-
-// BEST UPDATES TYPES
 export interface Notification {
   id: string;
   message: string;
@@ -147,6 +134,19 @@ export interface SearchResults {
   topics: Topic[];
   resources: Resource[];
   events: Event[];
+}
+
+// AI Chat Grounding Types
+export interface GroundingChunk {
+  web: {
+    uri: string;
+    title: string;
+  }
+}
+export interface ChatMessage {
+  role: 'user' | 'model';
+  parts: { text: string }[];
+  sources?: GroundingChunk[];
 }
 
 
@@ -207,11 +207,13 @@ export interface AuthContextType {
   updatePlacement: (id: string, data: Partial<Placement>) => void;
   deletePlacement: (id: string) => void;
 
-  // Stories & Notes
+  // Stories
   stories: Story[];
-  notes: Note[];
   addStory: (imageUrl: string) => Promise<void>;
   viewStory: (storyId: string) => Promise<void>;
+
+  // Notes
+  notes: Note[];
   addNote: (content: string) => Promise<void>;
   deleteNote: () => Promise<void>;
   
@@ -221,12 +223,17 @@ export interface AuthContextType {
   searchPortal: (query: string) => SearchResults;
   askAIAboutPortal: (query: string) => Promise<string>;
   toggleTopicLike: (topicId: string) => void;
+
+  // New AI Features
+  generateAvatar: (prompt: string) => Promise<string>;
+  getPersonalizedFeed: () => Promise<string>;
+  startAIChatStream: (history: ChatMessage[], message: string) => AsyncGenerator<GenerateContentResponse, void, undefined>;
 }
 
-// Theme context types
+// --- THEME CONTEXT TYPES ---
 export type Theme = 'default-blue' | 'forest-green' | 'deep-purple';
 
 export interface ThemeContextType {
   theme: Theme;
-  setTheme: React.Dispatch<React.SetStateAction<Theme>>;
+  setTheme: (theme: Theme) => void;
 }

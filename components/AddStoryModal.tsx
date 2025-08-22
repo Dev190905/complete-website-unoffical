@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 
@@ -25,8 +26,8 @@ const AddStoryModal: React.FC<AddStoryModalProps> = ({ onClose }) => {
     };
 
     return (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex justify-center items-center z-50 animate-fade-in" onClick={onClose}>
-            <div className="bg-gray-800 rounded-lg p-8 w-full max-w-lg border border-gray-700" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex justify-center items-center z-50" onClick={onClose}>
+            <div className="bg-gray-800 rounded-lg p-8 w-full max-w-lg border border-gray-700 animate-modal-pop-in" onClick={e => e.stopPropagation()}>
                 <h2 className="text-2xl font-bold mb-4 text-white">Add to Your Story</h2>
                 <p className="text-gray-400 mb-4 text-sm">Stories are visible for 24 hours. For this demo, please provide a direct image URL.</p>
                 <form onSubmit={handleSubmit} className="space-y-4">
